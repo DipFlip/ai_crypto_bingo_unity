@@ -180,51 +180,81 @@ public class RoboMove : MonoBehaviour
 
     private void Poop()
     {
-        if (!string.IsNullOrEmpty(currentCubeName))
+    // Scale down to simulate squeezing
+    transform.DOScale(new Vector3(0.8f, 0.8f, 0.8f), 0.2f)
+        .SetEase(Ease.InOutQuad)
+        .OnComplete(() =>
         {
-            Debug.Log($"Robot pooped in {currentCubeName}!");
-        }
-        else
-        {
-            Debug.Log("Robot pooped outside of any cube!");
-        }
-        
-        // Spawn particle effect at ground level under the robot
-        if (poopParticlePrefab != null)
-        {
-            // Cast a ray downward to find the ground
-            RaycastHit hit;
-            if (Physics.Raycast(transform.position, Vector3.down, out hit))
+            // Spawn particle effect at ground level under the robot
+            if (poopParticlePrefab != null)
             {
-                // Spawn slightly above the hit point to avoid clipping
-                Vector3 spawnPosition = hit.point + Vector3.up * 0.05f;
-                GameObject particleObj = Instantiate(poopParticlePrefab, spawnPosition, Quaternion.identity);
-                
-                ParticleSystem particleSystem = particleObj.GetComponent<ParticleSystem>();
-                if (particleSystem != null)
+                // Cast a ray downward to find the ground
+                RaycastHit hit;
+                if (Physics.Raycast(transform.position, Vector3.down, out hit))
                 {
-                    float duration = particleSystem.main.duration;
-                    Destroy(particleObj, duration);
+                    // Spawn slightly above the hit point to avoid clipping
+                    Vector3 spawnPosition = hit.point + Vector3.up * 0.05f;
+                    SpawnPoopParticle(spawnPosition);
                 }
+                else
+                {
+                    // Fallback if no ground is found
+                    Vector3 spawnPosition = transform.position;
+                    spawnPosition.y = 0; // Default to world ground level
+                    SpawnPoopParticle(spawnPosition);
+                }
+            }
+
+            // Flash color
+            FlashColor(Color.red, 0.1f);
+
+            // Log poop location
+            if (!string.IsNullOrEmpty(currentCubeName))
+            {
+                Debug.Log($"Robot pooped in {currentCubeName}!");
             }
             else
             {
-                // Fallback if no ground is found
-                Vector3 spawnPosition = transform.position;
-                spawnPosition.y = 0;  // Default to world ground level
-                GameObject particleObj = Instantiate(poopParticlePrefab, spawnPosition, Quaternion.identity);
-                
-                ParticleSystem particleSystem = particleObj.GetComponent<ParticleSystem>();
-                if (particleSystem != null)
-                {
-                    float duration = particleSystem.main.duration;
-                    Destroy(particleObj, duration);
-                }
+                Debug.Log("Robot pooped outside of any cube!");
             }
+
+            // Scale back to normal size with a bounce effect
+            transform.DOScale(Vector3.one, 0.2f)
+                .SetEase(Ease.OutBounce);
+
+            // Schedule the next poop
+            ScheduleNextPoop();
+        });
+    }
+
+    private void SpawnPoopParticle(Vector3 position)
+    {
+        GameObject particleObj = Instantiate(poopParticlePrefab, position, Quaternion.identity);
+
+        ParticleSystem particleSystem = particleObj.GetComponent<ParticleSystem>();
+        if (particleSystem != null)
+        {
+            float duration = particleSystem.main.duration;
+            Destroy(particleObj, duration);
         }
-        
-        // Schedule next poop
-        nextPoopTime = Time.time + Random.Range(minPoopInterval, maxPoopInterval);
+    }
+
+    private void FlashColor(Color flashColor, float duration)
+    {
+    Renderer robotRenderer = GetComponent<Renderer>();
+    if (robotRenderer != null)
+        {
+            Color originalColor = robotRenderer.material.color;
+
+            // Change to the flash color
+            robotRenderer.material.DOColor(flashColor, duration)
+                .SetEase(Ease.Flash)
+                .OnComplete(() =>
+                {
+                    // Revert to the original color
+                    robotRenderer.material.DOColor(originalColor, duration).SetEase(Ease.OutFlash);
+                });
+        }
     }
 
     private void OnTriggerEnter(Collider other)
