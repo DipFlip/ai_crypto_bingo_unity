@@ -6,12 +6,11 @@ public class RoboMove : MonoBehaviour
     [Header("Hover Settings")]
     [SerializeField] private float hoverAmplitude = 0.5f;
     [SerializeField] private float hoverFrequency = 1f;
-    
+
     [Header("Movement Settings")]
-    [SerializeField] private float moveRadius = 5f;
     [SerializeField] private float moveInterval = 3f;
     [SerializeField] private float moveSpeed = 2f;
-    [SerializeField] private Transform centerPoint;
+    [SerializeField] private GameObject boundarySphere; // Reference to the BoundarySphere GameObject
 
     [Header("Poop Settings")]
     [SerializeField] private float minPoopInterval = 5f;
@@ -29,14 +28,22 @@ public class RoboMove : MonoBehaviour
     {
         startPosition = transform.position;
         baseHeight = startPosition.y;
-        
-        if (centerPoint == null)
+
+        if (boundarySphere == null)
         {
-            GameObject center = new GameObject("RoboMoveCenter");
-            center.transform.position = new Vector3(startPosition.x, 0, startPosition.z); // Center point at ground level
-            centerPoint = center.transform;
+            Debug.LogError("BoundarySphere is not assigned!");
+            return;
         }
-        
+
+        // Get the radius of the BoundarySphere from its SphereCollider
+        SphereCollider sphereCollider = boundarySphere.GetComponent<SphereCollider>();
+        if (sphereCollider == null)
+        {
+            Debug.LogError("BoundarySphere does not have a SphereCollider!");
+            return;
+        }
+        sphereRadius = sphereCollider.radius * boundarySphere.transform.localScale.x; // Adjust for scaling
+
         StartHoverEffect();
         MoveToNewPosition();
         ScheduleNextPoop();
@@ -64,7 +71,7 @@ public class RoboMove : MonoBehaviour
     private void StartHoverEffect()
     {
         hoverTween?.Kill();
-        
+
         // Hover around the base height
         hoverTween = DOTween.To(
             () => transform.position.y,
@@ -78,34 +85,55 @@ public class RoboMove : MonoBehaviour
 
     private void MoveToNewPosition()
     {
+        if (boundarySphere == null) return;
+
         moveTween?.Kill();
 
-        Vector2 randomCircle = Random.insideUnitCircle * moveRadius;
-        Vector3 currentPos = transform.position;
-        Vector3 targetPos = centerPoint.position + new Vector3(randomCircle.x, 0, randomCircle.y);
-        
-        // Keep current height, only move in XZ plane
-        targetPos.y = currentPos.y;
-        
-        float distance = Vector3.Distance(
-            new Vector3(currentPos.x, 0, currentPos.z),
-            new Vector3(targetPos.x, 0, targetPos.z)
+        // Get the SphereCollider and calculate its true center and radius in world space
+        SphereCollider sphereCollider = boundarySphere.GetComponent<SphereCollider>();
+        if (sphereCollider == null) return;
+
+        Vector3 sphereWorldCenter = boundarySphere.transform.position + boundarySphere.transform.TransformVector(sphereCollider.center);
+        float sphereWorldRadius = sphereCollider.radius * Mathf.Max(
+            boundarySphere.transform.localScale.x,
+            boundarySphere.transform.localScale.y,
+            boundarySphere.transform.localScale.z
         );
+
+        // Generate a random position within the sphere
+        Vector3 randomDirection = Random.onUnitSphere; // Random direction
+        float randomDistance = Random.Range(0f, sphereWorldRadius); // Random distance within the radius
+        Vector3 offset = randomDirection * randomDistance;
+
+        Vector3 targetPos = sphereWorldCenter + offset;
+
+        // Keep the robot's current height
+        targetPos.y = transform.position.y;
+
+        // Ensure the robot stays within the sphere's bounds
+        if (Vector3.Distance(targetPos, sphereWorldCenter) > sphereWorldRadius)
+        {
+            targetPos = sphereWorldCenter + (targetPos - sphereWorldCenter).normalized * sphereWorldRadius;
+        }
+
+        // Calculate movement duration based on distance
+        float distance = Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z), new Vector3(targetPos.x, 0, targetPos.z));
         float duration = distance / moveSpeed;
 
-        moveTween = transform.DOMove(targetPos, duration)
-            .SetEase(Ease.InOutSine);
+        // Animate the robot's movement
+        moveTween = transform.DOMove(targetPos, duration).SetEase(Ease.InOutSine);
 
-        // Calculate direction without Y component for proper rotation
-        Vector3 lookDirection = targetPos - currentPos;
+        // Orient the robot towards the target
+        Vector3 lookDirection = targetPos - transform.position;
         lookDirection.y = 0;
-        
+
         if (lookDirection != Vector3.zero)
         {
             Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
             transform.DORotateQuaternion(targetRotation, 0.2f);
         }
 
+        // Set the next move time
         nextMoveTime = Time.time + moveInterval;
     }
 
@@ -116,10 +144,25 @@ public class RoboMove : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        if (centerPoint != null)
+        if (boundarySphere != null)
         {
             Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(centerPoint.position, moveRadius);
+
+            SphereCollider sphereCollider = boundarySphere.GetComponent<SphereCollider>();
+            if (sphereCollider != null)
+            {
+                // Calculate the correct center in world space
+                Vector3 worldCenter = boundarySphere.transform.position + boundarySphere.transform.TransformVector(sphereCollider.center);
+
+                // Adjust the radius for the GameObject's scale
+                float radius = sphereCollider.radius * Mathf.Max(
+                    boundarySphere.transform.localScale.x,
+                    boundarySphere.transform.localScale.y,
+                    boundarySphere.transform.localScale.z
+                );
+
+                Gizmos.DrawWireSphere(worldCenter, radius);
+            }
         }
     }
 
