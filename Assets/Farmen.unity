@@ -2240,10 +2240,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverAmplitude: 0.5
   hoverFrequency: 1
-  moveRadius: 5
   moveInterval: 3
   moveSpeed: 2
-  centerPoint: {fileID: 1397334336}
+  boundarySphere: {fileID: 1061964269}
 --- !u!4 &234136754
 Transform:
   m_ObjectHideFlags: 0
@@ -10490,7 +10489,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 5
+  m_Radius: 1
   m_Center: {x: -0.5, y: 2.2, z: 6}
 --- !u!23 &1061964271
 MeshRenderer:
@@ -13447,37 +13446,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7557624842054260415, guid: ee62f561f82725a459aaa2a0ef0e5a3e, type: 3}
   m_PrefabInstance: {fileID: 1396102516}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1397334335
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1397334336}
-  m_Layer: 0
-  m_Name: RoboMoveCenterPoint
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1397334336
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1397334335}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.5, y: 2.15, z: 6}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1410696466
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22607,7 +22575,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 99135627}
   - {fileID: 234136754}
-  - {fileID: 1397334336}
   - {fileID: 1717993931}
   - {fileID: 1738744303}
   - {fileID: 925417225}

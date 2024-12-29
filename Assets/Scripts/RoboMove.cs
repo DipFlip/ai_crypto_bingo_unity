@@ -74,27 +74,45 @@ public class RoboMove : MonoBehaviour
 
     private void MoveToNewPosition()
     {
+        if (boundarySphere == null) return;
+
         moveTween?.Kill();
 
-        // Generate a random position within the sphere
-        Vector3 randomDirection = Random.onUnitSphere; // Random direction on a sphere's surface
-        float randomDistance = Random.Range(0f, sphereRadius); // Random distance within the sphere's radius
-        Vector3 offset = randomDirection * randomDistance;
-        Vector3 targetPos = boundarySphere.transform.position + offset;
+        // Get the SphereCollider and calculate its true center and radius in world space
+        SphereCollider sphereCollider = boundarySphere.GetComponent<SphereCollider>();
+        if (sphereCollider == null) return;
 
-        // Adjust height to match the robot's current height
+        Vector3 sphereWorldCenter = boundarySphere.transform.position + boundarySphere.transform.TransformVector(sphereCollider.center);
+        float sphereWorldRadius = sphereCollider.radius * Mathf.Max(
+            boundarySphere.transform.localScale.x,
+            boundarySphere.transform.localScale.y,
+            boundarySphere.transform.localScale.z
+        );
+
+        // Generate a random position within the sphere
+        Vector3 randomDirection = Random.onUnitSphere; // Random direction
+        float randomDistance = Random.Range(0f, sphereWorldRadius); // Random distance within the radius
+        Vector3 offset = randomDirection * randomDistance;
+
+        Vector3 targetPos = sphereWorldCenter + offset;
+
+        // Keep the robot's current height
         targetPos.y = transform.position.y;
 
-        float distance = Vector3.Distance(
-            new Vector3(transform.position.x, 0, transform.position.z),
-            new Vector3(targetPos.x, 0, targetPos.z)
-        );
+        // Ensure the robot stays within the sphere's bounds
+        if (Vector3.Distance(targetPos, sphereWorldCenter) > sphereWorldRadius)
+        {
+            targetPos = sphereWorldCenter + (targetPos - sphereWorldCenter).normalized * sphereWorldRadius;
+        }
+
+        // Calculate movement duration based on distance
+        float distance = Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z), new Vector3(targetPos.x, 0, targetPos.z));
         float duration = distance / moveSpeed;
 
-        moveTween = transform.DOMove(targetPos, duration)
-            .SetEase(Ease.InOutSine);
+        // Animate the robot's movement
+        moveTween = transform.DOMove(targetPos, duration).SetEase(Ease.InOutSine);
 
-        // Calculate direction without Y component for proper rotation
+        // Orient the robot towards the target
         Vector3 lookDirection = targetPos - transform.position;
         lookDirection.y = 0;
 
@@ -104,6 +122,7 @@ public class RoboMove : MonoBehaviour
             transform.DORotateQuaternion(targetRotation, 0.2f);
         }
 
+        // Set the next move time
         nextMoveTime = Time.time + moveInterval;
     }
 
