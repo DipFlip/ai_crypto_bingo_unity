@@ -2242,11 +2242,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   hoverAmplitude: 0.5
   hoverFrequency: 1
-  moveInterval: 3
-  moveSpeed: 2
+  moveInterval: 2
+  moveSpeed: 3
   boundarySphere: {fileID: 1061964269}
-  minPoopInterval: 5
-  maxPoopInterval: 15
+  minPoopInterval: 2
+  maxPoopInterval: 7
+  poopParticlePrefab: {fileID: 1000010675638318, guid: a3768c8a9d1b90d4bb0eb0e4bdbe730c, type: 3}
 --- !u!4 &234136754
 Transform:
   m_ObjectHideFlags: 0
@@ -11182,7 +11183,7 @@ SphereCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 3
   m_Radius: 5
   m_Center: {x: -0.5, y: 2.2, z: 6}
