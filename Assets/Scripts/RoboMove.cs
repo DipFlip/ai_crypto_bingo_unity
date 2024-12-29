@@ -42,7 +42,7 @@ public class RoboMove : MonoBehaviour
             Debug.LogError("BoundarySphere does not have a SphereCollider!");
             return;
         }
-        sphereRadius = sphereCollider.radius * boundarySphere.transform.localScale.x; // Adjust for scaling
+        // sphereRadius = sphereCollider.radius * boundarySphere.transform.localScale.x; // Adjust for scaling
 
         StartHoverEffect();
         MoveToNewPosition();
