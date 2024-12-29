@@ -16,6 +16,9 @@ public class RoboMove : MonoBehaviour
     [SerializeField] private float minPoopInterval = 5f;
     [SerializeField] private float maxPoopInterval = 15f;
 
+    [Header("Effects")]
+    [SerializeField] private GameObject poopParticlePrefab;
+
     private Vector3 startPosition;
     private float baseHeight;
     private Tween hoverTween;
@@ -120,8 +123,12 @@ public class RoboMove : MonoBehaviour
         float distance = Vector3.Distance(new Vector3(transform.position.x, 0, transform.position.z), new Vector3(targetPos.x, 0, targetPos.z));
         float duration = distance / moveSpeed;
 
-        // Animate the robot's movement
-        moveTween = transform.DOMove(targetPos, duration).SetEase(Ease.InOutSine);
+        // Only move in XZ plane, leaving Y for the hover effect
+        moveTween = DOTween.To(() => transform.position,
+            (pos) => transform.position = new Vector3(pos.x, transform.position.y, pos.z),
+            new Vector3(targetPos.x, transform.position.y, targetPos.z),
+            duration)
+            .SetEase(Ease.InOutSine);
 
         // Orient the robot towards the target
         Vector3 lookDirection = targetPos - transform.position;
@@ -180,6 +187,40 @@ public class RoboMove : MonoBehaviour
         else
         {
             Debug.Log("Robot pooped outside of any cube!");
+        }
+        
+        // Spawn particle effect at ground level under the robot
+        if (poopParticlePrefab != null)
+        {
+            // Cast a ray downward to find the ground
+            RaycastHit hit;
+            if (Physics.Raycast(transform.position, Vector3.down, out hit))
+            {
+                // Spawn slightly above the hit point to avoid clipping
+                Vector3 spawnPosition = hit.point + Vector3.up * 0.05f;
+                GameObject particleObj = Instantiate(poopParticlePrefab, spawnPosition, Quaternion.identity);
+                
+                ParticleSystem particleSystem = particleObj.GetComponent<ParticleSystem>();
+                if (particleSystem != null)
+                {
+                    float duration = particleSystem.main.duration;
+                    Destroy(particleObj, duration);
+                }
+            }
+            else
+            {
+                // Fallback if no ground is found
+                Vector3 spawnPosition = transform.position;
+                spawnPosition.y = 0;  // Default to world ground level
+                GameObject particleObj = Instantiate(poopParticlePrefab, spawnPosition, Quaternion.identity);
+                
+                ParticleSystem particleSystem = particleObj.GetComponent<ParticleSystem>();
+                if (particleSystem != null)
+                {
+                    float duration = particleSystem.main.duration;
+                    Destroy(particleObj, duration);
+                }
+            }
         }
         
         // Schedule next poop
