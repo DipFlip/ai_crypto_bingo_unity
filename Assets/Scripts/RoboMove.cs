@@ -13,11 +13,17 @@ public class RoboMove : MonoBehaviour
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private Transform centerPoint;
 
+    [Header("Poop Settings")]
+    [SerializeField] private float minPoopInterval = 5f;
+    [SerializeField] private float maxPoopInterval = 15f;
+
     private Vector3 startPosition;
     private float baseHeight;
     private Tween hoverTween;
     private Tween moveTween;
     private float nextMoveTime;
+    private float nextPoopTime;
+    private string currentCubeName = "";
 
     void Start()
     {
@@ -33,6 +39,7 @@ public class RoboMove : MonoBehaviour
         
         StartHoverEffect();
         MoveToNewPosition();
+        ScheduleNextPoop();
     }
 
     void Update()
@@ -40,6 +47,11 @@ public class RoboMove : MonoBehaviour
         if (Time.time >= nextMoveTime)
         {
             MoveToNewPosition();
+        }
+
+        if (Time.time >= nextPoopTime)
+        {
+            Poop();
         }
     }
 
@@ -108,6 +120,42 @@ public class RoboMove : MonoBehaviour
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(centerPoint.position, moveRadius);
+        }
+    }
+
+    private void ScheduleNextPoop()
+    {
+        nextPoopTime = Time.time + Random.Range(minPoopInterval, maxPoopInterval);
+    }
+
+    private void Poop()
+    {
+        if (!string.IsNullOrEmpty(currentCubeName))
+        {
+            Debug.Log($"Robot pooped in {currentCubeName}!");
+        }
+        else
+        {
+            Debug.Log("Robot pooped outside of any cube!");
+        }
+        
+        // Schedule next poop
+        nextPoopTime = Time.time + Random.Range(minPoopInterval, maxPoopInterval);
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Update the current cube we're in
+        currentCubeName = other.gameObject.name;
+        Debug.Log($"Entered cube: {currentCubeName}");
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        Debug.Log($"Exited cube: {other.gameObject.name}");
+        if (currentCubeName == other.gameObject.name)
+        {
+            currentCubeName = "";
         }
     }
 }
