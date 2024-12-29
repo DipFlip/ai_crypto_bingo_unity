@@ -1,5 +1,7 @@
 using UnityEngine;
 using DG.Tweening;
+using TMPro;
+using System.Collections.Generic;
 
 public class RoboMove : MonoBehaviour
 {
@@ -21,6 +23,12 @@ public class RoboMove : MonoBehaviour
     [Header("Effects")]
     [SerializeField] private GameObject poopParticlePrefab;
 
+    [Header("Area References")]
+    [SerializeField] private Collider blueArea;   // was area1
+    [SerializeField] private Collider purpleArea; // was area2
+    [SerializeField] private Collider yellowArea; // was area3
+    [SerializeField] private Collider greenArea;  // was area4
+
     private Vector3 startPosition;
     private float baseHeight;
     private Tween hoverTween;
@@ -28,6 +36,9 @@ public class RoboMove : MonoBehaviour
     private float nextMoveTime;
     private float nextPoopTime;
     private string currentCubeName = "";
+    private Dictionary<string, int> poopCounts = new Dictionary<string, int>();
+    [SerializeField] private TMP_Text statsText; // Drag your TextMeshPro component here
+    private List<string> currentAreas = new List<string>();
 
     void Start()
     {
@@ -52,6 +63,17 @@ public class RoboMove : MonoBehaviour
         StartHoverEffect();
         MoveToNewPosition();
         ScheduleNextPoop();
+
+        // Initialize empty dictionary - we'll add areas as we discover them
+        poopCounts = new Dictionary<string, int>();
+        
+        // Initialize the poop counts for each area
+        poopCounts[blueArea.name] = 0;
+        poopCounts[purpleArea.name] = 0;
+        poopCounts[yellowArea.name] = 0;
+        poopCounts[greenArea.name] = 0;
+        
+        UpdateStatsDisplay();
     }
 
     void Update()
@@ -182,51 +204,62 @@ public class RoboMove : MonoBehaviour
 
     private void Poop()
     {
-    // Scale down to simulate squeezing
-    transform.DOScale(new Vector3(poopScaler, poopScaler, poopScaler), poopScaleDuration)
-        .SetEase(Ease.InOutQuad)
-        .OnComplete(() =>
-        {
-            // Spawn particle effect at ground level under the robot
-            if (poopParticlePrefab != null)
+        // Prevent multiple poops while scaling animation is in progress
+        if (transform.localScale != Vector3.one) return;
+
+        // Scale down to simulate squeezing
+        transform.DOScale(new Vector3(poopScaler, poopScaler, poopScaler), poopScaleDuration)
+            .SetEase(Ease.InOutQuad)
+            .OnComplete(() =>
             {
-                // Cast a ray downward to find the ground
-                RaycastHit hit;
-                if (Physics.Raycast(transform.position, Vector3.down, out hit))
+                // Spawn particle effect at ground level under the robot
+                if (poopParticlePrefab != null)
                 {
-                    // Spawn slightly above the hit point to avoid clipping
-                    Vector3 spawnPosition = hit.point + Vector3.up * 0.05f;
-                    SpawnPoopParticle(spawnPosition);
+                    // Cast a ray downward to find the ground
+                    RaycastHit hit;
+                    if (Physics.Raycast(transform.position, Vector3.down, out hit))
+                    {
+                        // Spawn slightly above the hit point to avoid clipping
+                        Vector3 spawnPosition = hit.point + Vector3.up * 0.05f;
+                        SpawnPoopParticle(spawnPosition);
+                    }
+                    else
+                    {
+                        // Fallback if no ground is found
+                        Vector3 spawnPosition = transform.position;
+                        spawnPosition.y = 0; // Default to world ground level
+                        SpawnPoopParticle(spawnPosition);
+                    }
+                }
+
+                // Flash color
+                FlashColor(Color.red, 0.1f);
+
+                // Log poop location for all current areas
+                if (currentAreas.Count > 0)
+                {
+                    foreach (string areaName in currentAreas)
+                    {
+                        if (poopCounts.ContainsKey(areaName))
+                        {
+                            poopCounts[areaName]++;
+                            Debug.Log($"Robot pooped in {areaName}!");
+                        }
+                    }
+                    UpdateStatsDisplay();
                 }
                 else
                 {
-                    // Fallback if no ground is found
-                    Vector3 spawnPosition = transform.position;
-                    spawnPosition.y = 0; // Default to world ground level
-                    SpawnPoopParticle(spawnPosition);
+                    Debug.Log("Robot pooped outside of any cube!");
                 }
-            }
 
-            // Flash color
-            FlashColor(Color.red, 0.1f);
+                // Scale back to normal size with a bounce effect
+                transform.DOScale(Vector3.one, 0.2f)
+                    .SetEase(Ease.OutBounce);
 
-            // Log poop location
-            if (!string.IsNullOrEmpty(currentCubeName))
-            {
-                Debug.Log($"Robot pooped in {currentCubeName}!");
-            }
-            else
-            {
-                Debug.Log("Robot pooped outside of any cube!");
-            }
-
-            // Scale back to normal size with a bounce effect
-            transform.DOScale(Vector3.one, 0.2f)
-                .SetEase(Ease.OutBounce);
-
-            // Schedule the next poop
-            ScheduleNextPoop();
-        });
+                // Schedule the next poop
+                ScheduleNextPoop();
+            });
     }
 
     private void SpawnPoopParticle(Vector3 position)
@@ -261,17 +294,34 @@ public class RoboMove : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Update the current cube we're in
-        currentCubeName = other.gameObject.name;
-        Debug.Log($"Entered cube: {currentCubeName}");
+        string areaName = other.gameObject.name;
+        if (!currentAreas.Contains(areaName))
+        {
+            currentAreas.Add(areaName);
+            Debug.Log($"Entered cube: {areaName}");
+            
+            // Initialize count for this area if we haven't seen it before
+            if (!poopCounts.ContainsKey(areaName))
+            {
+                poopCounts[areaName] = 0;
+            }
+        }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        Debug.Log($"Exited cube: {other.gameObject.name}");
-        if (currentCubeName == other.gameObject.name)
-        {
-            currentCubeName = "";
-        }
+        string areaName = other.gameObject.name;
+        currentAreas.Remove(areaName);
+        Debug.Log($"Exited cube: {areaName}");
+    }
+
+    private void UpdateStatsDisplay()
+    {
+        string displayText = "";
+        displayText += $"Blue: {poopCounts[blueArea.name]}\n";
+        displayText += $"Purple: {poopCounts[purpleArea.name]}\n";
+        displayText += $"Yellow: {poopCounts[yellowArea.name]}\n";
+        displayText += $"Green: {poopCounts[greenArea.name]}";
+        statsText.text = displayText;
     }
 }
