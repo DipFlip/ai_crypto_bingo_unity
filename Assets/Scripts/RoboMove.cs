@@ -15,6 +15,8 @@ public class RoboMove : MonoBehaviour
     [Header("Poop Settings")]
     [SerializeField] private float minPoopInterval = 5f;
     [SerializeField] private float maxPoopInterval = 15f;
+    [SerializeField] private float poopScaler = 0.2f;
+    [SerializeField] private float poopScaleDuration = 0.2f;
 
     [Header("Effects")]
     [SerializeField] private GameObject poopParticlePrefab;
@@ -181,7 +183,7 @@ public class RoboMove : MonoBehaviour
     private void Poop()
     {
     // Scale down to simulate squeezing
-    transform.DOScale(new Vector3(0.8f, 0.8f, 0.8f), 0.2f)
+    transform.DOScale(new Vector3(poopScaler, poopScaler, poopScaler), poopScaleDuration)
         .SetEase(Ease.InOutQuad)
         .OnComplete(() =>
         {
