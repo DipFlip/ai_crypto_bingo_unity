@@ -23,6 +23,9 @@ public class RoboMove : MonoBehaviour
     [Header("Effects")]
     [SerializeField] private GameObject poopParticlePrefab;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip[] poopSounds;
+
     [Header("Area References")]
     [SerializeField] private Collider blueArea;   // was area1
     [SerializeField] private Collider purpleArea; // was area2
@@ -229,6 +232,13 @@ public class RoboMove : MonoBehaviour
                         Vector3 spawnPosition = transform.position;
                         spawnPosition.y = 0; // Default to world ground level
                         SpawnPoopParticle(spawnPosition);
+                    }
+
+                    // Play random poop sound if any are assigned
+                    if (poopSounds != null && poopSounds.Length > 0)
+                    {
+                        AudioClip randomSound = poopSounds[Random.Range(0, poopSounds.Length)];
+                        SoundManager.Instance.PlaySFX(randomSound);
                     }
                 }
 
