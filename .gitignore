@@ -75,3 +75,4 @@ crashlytics-build.properties
 # Configuration files with sensitive data
 Assets/Config/
 Assets/Config.meta
+mobile-app/src/config/supabase.ts
