@@ -48,6 +48,8 @@ public class Market : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+
+
     void Start()
     {
         marketCreator = FindObjectOfType<SupabaseMarketCreator>();
@@ -65,10 +67,10 @@ public class Market : MonoBehaviour
             Debug.Log($"Area: {key}");
         }
         dollarRate = originalDollarRate;
-        blueRate = originalBlueRate * poopCounts["Blue"];
-        purpleRate = originalPurpleRate * poopCounts["Purple"];
-        yellowRate = originalYellowRate * poopCounts["Yellow"];
-        greenRate = originalGreenRate * poopCounts["Green"];
+        blueRate = originalBlueRate * Mathf.Pow(1.1f, poopCounts["Blue"]);
+        purpleRate = originalPurpleRate * Mathf.Pow(1.1f, poopCounts["Purple"]); 
+        yellowRate = originalYellowRate * Mathf.Pow(1.1f, poopCounts["Yellow"]);
+        greenRate = originalGreenRate * Mathf.Pow(1.1f, poopCounts["Green"]);
         UpdateMarket();
     }
 

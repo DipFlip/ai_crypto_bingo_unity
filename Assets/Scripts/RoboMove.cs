@@ -330,11 +330,11 @@ public class RoboMove : MonoBehaviour
 
     private void UpdateStatsDisplay()
     {
-        string displayText = "";
-        displayText += $"Blue: {poopCounts[blueArea.name]}\n";
-        displayText += $"Purple: {poopCounts[purpleArea.name]}\n";
-        displayText += $"Yellow: {poopCounts[yellowArea.name]}\n";
-        displayText += $"Green: {poopCounts[greenArea.name]}";
+        string displayText = "Crypto rates\n";
+        displayText += $"Blue: {Market.Instance.GetBlueRate():F1}\n";
+        displayText += $"Purple: {Market.Instance.GetPurpleRate():F1}\n";
+        displayText += $"Yellow: {Market.Instance.GetYellowRate():F1}\n";
+        displayText += $"Green: {Market.Instance.GetGreenRate():F1}";
         statsText.text = displayText;
     }
 }
