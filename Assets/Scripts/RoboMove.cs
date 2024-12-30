@@ -254,8 +254,11 @@ public class RoboMove : MonoBehaviour
                         {
                             poopCounts[areaName]++;
                             Debug.Log($"Robot pooped in {areaName}!");
+                            
+                            // Increase the market value for the pooped area
                         }
                     }
+                    Market.Instance.UpdateMarketValues(poopCounts);
                     UpdateStatsDisplay();
                 }
                 else
