@@ -14,6 +14,10 @@ public class RoboMove : MonoBehaviour
     [SerializeField] private float moveSpeed = 2f;
     [SerializeField] private GameObject boundarySphere; // Reference to the BoundarySphere GameObject
 
+    [Header("Food Settings")]
+    [SerializeField] private float foodSeekDuration = 10f; // Duration to stay at food
+    [SerializeField] private float foodEatingDistance = 1f; // Distance considered close enough to eat
+
     [Header("Poop Settings")]
     [SerializeField] private float minPoopInterval = 5f;
     [SerializeField] private float maxPoopInterval = 15f;
@@ -42,6 +46,11 @@ public class RoboMove : MonoBehaviour
     private Dictionary<string, int> poopCounts = new Dictionary<string, int>();
     [SerializeField] private TMP_Text statsText; // Drag your TextMeshPro component here
     private List<string> currentAreas = new List<string>();
+
+    // Food-related variables
+    private GameObject targetFood;
+    private float foodSeekEndTime;
+    private bool isSeekingFood;
 
     void Start()
     {
@@ -81,9 +90,27 @@ public class RoboMove : MonoBehaviour
 
     void Update()
     {
-        if (Time.time >= nextMoveTime)
+        if (isSeekingFood && targetFood != null)
         {
-            MoveToNewPosition();
+            // Check if the seeking duration has expired
+            if (Time.time >= foodSeekEndTime)
+            {
+                isSeekingFood = false;
+                targetFood = null;
+                MoveToNewPosition(); // Resume normal movement
+            }
+            else
+            {
+                // Always move towards food when seeking
+                MoveToFood();
+            }
+        }
+        else if (!isSeekingFood)
+        {
+            if (Time.time >= nextMoveTime)
+            {
+                MoveToNewPosition();
+            }
         }
 
         if (Time.time >= nextPoopTime)
@@ -336,5 +363,48 @@ public class RoboMove : MonoBehaviour
         displayText += $"Yellow: {Market.Instance.GetYellowRate():F1}\n";
         displayText += $"Green: {Market.Instance.GetGreenRate():F1}";
         statsText.text = displayText;
+    }
+
+    // New method to handle food targeting
+    public void SetTargetFood(GameObject food)
+    {
+        targetFood = food;
+        if (food != null)
+        {
+            isSeekingFood = true;
+            foodSeekEndTime = Time.time + foodSeekDuration;
+            moveTween?.Kill(); // Kill any existing movement
+            MoveToFood();
+        }
+        else
+        {
+            isSeekingFood = false;
+        }
+    }
+
+    // New method to move towards food
+    private void MoveToFood()
+    {
+        if (targetFood == null) return;
+
+        moveTween?.Kill();
+
+        Vector3 targetPos = targetFood.transform.position;
+        targetPos.y = transform.position.y; // Maintain current height
+
+        // Calculate movement this frame
+        Vector3 direction = (targetPos - transform.position).normalized;
+        Vector3 newPosition = transform.position + direction * moveSpeed * Time.deltaTime;
+        transform.position = newPosition;
+
+        // Orient towards food
+        Vector3 lookDirection = targetPos - transform.position;
+        lookDirection.y = 0;
+
+        if (lookDirection != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
+            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+        }
     }
 }
