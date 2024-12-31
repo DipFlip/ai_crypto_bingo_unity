@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections;
 using UnityEngine.Networking;
 using System.IO;
+using System.Linq;
 
 public class RoboMove : MonoBehaviour
 {
@@ -443,8 +444,8 @@ public class RoboMove : MonoBehaviour
 
     private IEnumerator ResetGameRoutine()
     {
-        // Reset Market values
-        string marketJson = "{\"Player\": \"Market\", \"Dollar\": 1000000, \"Blue\": 20.0, \"Purple\": 20.0, \"Yellow\": 20.0, \"Green\": 20.0}";
+        // Reset Market values (poop counts)
+        string marketJson = "{\"Player\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
         UnityWebRequest marketRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "PATCH");
         byte[] marketBodyRaw = System.Text.Encoding.UTF8.GetBytes(marketJson);
         marketRequest.uploadHandler = new UploadHandlerRaw(marketBodyRaw);
@@ -484,6 +485,13 @@ public class RoboMove : MonoBehaviour
         playersRequest.SetRequestHeader("Prefer", "return=minimal");
 
         yield return playersRequest.SendWebRequest();
+
+        // Reset local poop counts
+        foreach (var key in poopCounts.Keys.ToList())
+        {
+            poopCounts[key] = 0;
+        }
+        UpdateStatsDisplay();
 
         Debug.Log("Game reset completed!");
     }

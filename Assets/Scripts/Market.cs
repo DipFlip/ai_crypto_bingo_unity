@@ -25,17 +25,14 @@ public class Market : MonoBehaviour
 
     private SupabaseMarketCreator marketCreator;
 
-    // Current rates
-    private float dollarRate = 100f;
-    private float blueRate = 20f;
-    private float purpleRate = 20f;
-    private float yellowRate = 20f;
-    private float greenRate = 20f;
-    private float originalDollarRate = 100f;
-    private float originalBlueRate = 20f;
-    private float originalPurpleRate = 20f;
-    private float originalYellowRate = 20f;
-    private float originalGreenRate = 20f;
+    // Base rates that will be multiplied by 1.1^poopCount
+    private const float BASE_RATE = 20f;
+
+    // Current rates calculated from poop counts
+    private float blueRate = BASE_RATE;
+    private float purpleRate = BASE_RATE;
+    private float yellowRate = BASE_RATE;
+    private float greenRate = BASE_RATE;
 
     void Awake()
     {
@@ -48,8 +45,6 @@ public class Market : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-
-
     void Start()
     {
         marketCreator = FindObjectOfType<SupabaseMarketCreator>();
@@ -57,28 +52,20 @@ public class Market : MonoBehaviour
         {
             Debug.LogError("SupabaseMarketCreator not found!");
         }
-        UpdateMarket();
     }
 
     public void UpdateMarketValues(Dictionary<string, int> poopCounts)
     {
-        foreach (string key in poopCounts.Keys)
-        {
-            Debug.Log($"Area: {key}");
-        }
-        dollarRate = originalDollarRate;
-        blueRate = originalBlueRate * Mathf.Pow(1.1f, poopCounts["Blue"]);
-        purpleRate = originalPurpleRate * Mathf.Pow(1.1f, poopCounts["Purple"]); 
-        yellowRate = originalYellowRate * Mathf.Pow(1.1f, poopCounts["Yellow"]);
-        greenRate = originalGreenRate * Mathf.Pow(1.1f, poopCounts["Green"]);
-        UpdateMarket();
-    }
+        // Update the rates based on poop counts
+        blueRate = BASE_RATE * Mathf.Pow(1.1f, poopCounts["Blue"]);
+        purpleRate = BASE_RATE * Mathf.Pow(1.1f, poopCounts["Purple"]);
+        yellowRate = BASE_RATE * Mathf.Pow(1.1f, poopCounts["Yellow"]);
+        greenRate = BASE_RATE * Mathf.Pow(1.1f, poopCounts["Green"]);
 
-    private void UpdateMarket()
-    {
-        if (marketCreator != null && marketCreator.marketPlayerId != -1)
+        // Update the counts in Supabase
+        if (marketCreator != null)
         {
-            marketCreator.UpdateMarketValues(dollarRate, blueRate, purpleRate, yellowRate, greenRate);
+            marketCreator.UpdateMarketValues(poopCounts);
         }
     }
 

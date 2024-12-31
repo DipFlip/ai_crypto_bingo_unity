@@ -3,6 +3,7 @@ using UnityEngine.Networking;
 using System.Collections;
 using System.Threading.Tasks;
 using System.IO;
+using System.Collections.Generic;
 
 public class SupabaseMarketCreator : MonoBehaviour
 {
@@ -78,7 +79,8 @@ public class SupabaseMarketCreator : MonoBehaviour
 
     IEnumerator CreateMarketPlayer()
     {
-        string json = "{\"Player\": \"Market\", \"Dollar\": 1000000, \"Blue\": 10.0, \"Purple\": 20.0, \"Yellow\": 30.0, \"Green\": 40.0}";
+        // Initialize with zero poop counts
+        string json = "{\"Player\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
 
         UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
@@ -95,7 +97,6 @@ public class SupabaseMarketCreator : MonoBehaviour
         if (request.result == UnityWebRequest.Result.Success)
         {
             Debug.Log("Market player created successfully!");
-            // Parse the ID from the response
             string response = request.downloadHandler.text;
             string idStr = response.Split(new[] { "\"id\":" }, System.StringSplitOptions.None)[1];
             marketPlayerId = int.Parse(idStr.Split(',')[0]);
@@ -107,15 +108,15 @@ public class SupabaseMarketCreator : MonoBehaviour
         }
     }
 
-    public void UpdateMarketValues(float dollar, float blue, float purple, float yellow, float green)
+    public void UpdateMarketValues(Dictionary<string, int> poopCounts)
     {
         if (marketPlayerId == -1)
         {
             Debug.LogError("Market player ID not initialized!");
             return;
         }
-        Debug.Log("Updating market values: Dollar: " + dollar + ", Blue: " + blue + ", Purple: " + purple + ", Yellow: " + yellow + ", Green: " + green);
-        string json = $"{{\"Dollar\": {dollar}, \"Blue\": {blue}, \"Purple\": {purple}, \"Yellow\": {yellow}, \"Green\": {green}}}";
+        
+        string json = $"{{\"Blue\": {poopCounts["Blue"]}, \"Purple\": {poopCounts["Purple"]}, \"Yellow\": {poopCounts["Yellow"]}, \"Green\": {poopCounts["Green"]}}}";
         StartCoroutine(UpdateMarket(json));
     }
 
