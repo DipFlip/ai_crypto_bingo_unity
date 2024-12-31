@@ -99,22 +99,64 @@ public class RoboMove : MonoBehaviour
             Debug.LogError("BoundarySphere does not have a SphereCollider!");
             return;
         }
-        // sphereRadius = sphereCollider.radius * boundarySphere.transform.localScale.x; // Adjust for scaling
 
         StartHoverEffect();
         MoveToNewPosition();
         ScheduleNextPoop();
 
-        // Initialize empty dictionary - we'll add areas as we discover them
+        // Initialize dictionary with area names
         poopCounts = new Dictionary<string, int>();
-        
-        // Initialize the poop counts for each area
         poopCounts[blueArea.name] = 0;
         poopCounts[purpleArea.name] = 0;
         poopCounts[yellowArea.name] = 0;
         poopCounts[greenArea.name] = 0;
         
-        UpdateStatsDisplay();
+        // Fetch current market values
+        StartCoroutine(FetchCurrentMarketValues());
+    }
+
+    private IEnumerator FetchCurrentMarketValues()
+    {
+        UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "GET");
+        request.downloadHandler = new DownloadHandlerBuffer();
+        
+        request.SetRequestHeader("apikey", ANON_KEY);
+        request.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string response = request.downloadHandler.text;
+            if (!string.IsNullOrEmpty(response) && response != "[]")
+            {
+                // Parse the response to get current values
+                // Remove the square brackets as we expect only one market player
+                response = response.Trim('[', ']');
+                var marketData = JsonUtility.FromJson<MarketData>(response);
+                
+                // Update local poop counts
+                poopCounts[blueArea.name] = marketData.Blue;
+                poopCounts[purpleArea.name] = marketData.Purple;
+                poopCounts[yellowArea.name] = marketData.Yellow;
+                poopCounts[greenArea.name] = marketData.Green;
+                
+                UpdateStatsDisplay();
+            }
+        }
+        else
+        {
+            Debug.LogError("Error fetching market values: " + request.error);
+        }
+    }
+
+    [System.Serializable]
+    private class MarketData
+    {
+        public int Blue;
+        public int Purple;
+        public int Yellow;
+        public int Green;
     }
 
     void Update()
@@ -444,8 +486,8 @@ public class RoboMove : MonoBehaviour
 
     private IEnumerator ResetGameRoutine()
     {
-        // Reset Market values (poop counts)
-        string marketJson = "{\"Player\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
+        // Reset Market values (poop counts and dollar value)
+        string marketJson = "{\"Player\": \"Market\", \"Dollar\": 1000000, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
         UnityWebRequest marketRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "PATCH");
         byte[] marketBodyRaw = System.Text.Encoding.UTF8.GetBytes(marketJson);
         marketRequest.uploadHandler = new UploadHandlerRaw(marketBodyRaw);

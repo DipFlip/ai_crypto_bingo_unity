@@ -7,8 +7,8 @@ using System.Collections.Generic;
 
 public class SupabaseMarketCreator : MonoBehaviour
 {
-    private const string SUPABASE_URL = "https://maxpibvwwratozsmdvyd.supabase.co";
-    private string ANON_KEY;
+    public const string SUPABASE_URL = "https://maxpibvwwratozsmdvyd.supabase.co";
+    public string ANON_KEY;
     
     public int marketPlayerId = -1;
 
@@ -79,8 +79,8 @@ public class SupabaseMarketCreator : MonoBehaviour
 
     IEnumerator CreateMarketPlayer()
     {
-        // Initialize with zero poop counts
-        string json = "{\"Player\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
+        // Only set the Player name, don't initialize values
+        string json = "{\"Player\": \"Market\"}";
 
         UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);

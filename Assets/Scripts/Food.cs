@@ -3,12 +3,19 @@ using UnityEngine;
 public class Food : MonoBehaviour
 {
     [SerializeField] private ParticleSystem eatingEffect;
+    [SerializeField] private AudioClip foodSound;
     private float destroyTime;
     private bool particlesPlayed = false;
     private bool startedDestroying = false;
 
     private void Start()
     {
+        // Play spawn sound if we have one
+        if (foodSound != null)
+        {
+            SoundManager.Instance.PlaySFX(foodSound);
+        }
+
         // Find the robot and notify it about the food
         RoboMove robot = FindObjectOfType<RoboMove>();
         if (robot != null)
@@ -25,6 +32,7 @@ public class Food : MonoBehaviour
         if (Time.time >= destroyTime && !startedDestroying)
         {
             startedDestroying = true;
+
             // Play particles if we have them
             if (eatingEffect != null)
             {
