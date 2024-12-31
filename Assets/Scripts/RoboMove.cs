@@ -2,9 +2,36 @@ using UnityEngine;
 using DG.Tweening;
 using TMPro;
 using System.Collections.Generic;
+using System.Collections;
+using UnityEngine.Networking;
+using System.IO;
 
 public class RoboMove : MonoBehaviour
 {
+    private const string SUPABASE_URL = "https://maxpibvwwratozsmdvyd.supabase.co";
+    private string ANON_KEY;
+
+    [System.Serializable]
+    private class SupabaseConfig
+    {
+        public string ANON_KEY;
+    }
+
+    private void LoadConfig()
+    {
+        string configPath = Path.Combine(Application.dataPath, "Config", "SupabaseConfig.json");
+        if (File.Exists(configPath))
+        {
+            string jsonContent = File.ReadAllText(configPath);
+            var config = JsonUtility.FromJson<SupabaseConfig>(jsonContent);
+            ANON_KEY = config.ANON_KEY;
+        }
+        else
+        {
+            Debug.LogError("SupabaseConfig.json not found! Please create it from the template file.");
+        }
+    }
+
     [Header("Hover Settings")]
     [SerializeField] private float hoverAmplitude = 0.5f;
     [SerializeField] private float hoverFrequency = 1f;
@@ -54,6 +81,7 @@ public class RoboMove : MonoBehaviour
 
     void Start()
     {
+        LoadConfig();
         startPosition = transform.position;
         baseHeight = startPosition.y;
 
@@ -406,5 +434,57 @@ public class RoboMove : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
         }
+    }
+
+    public void ResetGame()
+    {
+        StartCoroutine(ResetGameRoutine());
+    }
+
+    private IEnumerator ResetGameRoutine()
+    {
+        // Reset Market values
+        string marketJson = "{\"Player\": \"Market\", \"Dollar\": 1000000, \"Blue\": 20.0, \"Purple\": 20.0, \"Yellow\": 20.0, \"Green\": 20.0}";
+        UnityWebRequest marketRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "PATCH");
+        byte[] marketBodyRaw = System.Text.Encoding.UTF8.GetBytes(marketJson);
+        marketRequest.uploadHandler = new UploadHandlerRaw(marketBodyRaw);
+        marketRequest.downloadHandler = new DownloadHandlerBuffer();
+        
+        marketRequest.SetRequestHeader("apikey", ANON_KEY);
+        marketRequest.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
+        marketRequest.SetRequestHeader("Content-Type", "application/json");
+        marketRequest.SetRequestHeader("Prefer", "return=minimal");
+
+        yield return marketRequest.SendWebRequest();
+
+        // Reset Food values
+        string foodJson = "{\"Player\": \"Food\", \"Dollar\": 0, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
+        UnityWebRequest foodRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Food", "PATCH");
+        byte[] foodBodyRaw = System.Text.Encoding.UTF8.GetBytes(foodJson);
+        foodRequest.uploadHandler = new UploadHandlerRaw(foodBodyRaw);
+        foodRequest.downloadHandler = new DownloadHandlerBuffer();
+        
+        foodRequest.SetRequestHeader("apikey", ANON_KEY);
+        foodRequest.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
+        foodRequest.SetRequestHeader("Content-Type", "application/json");
+        foodRequest.SetRequestHeader("Prefer", "return=minimal");
+
+        yield return foodRequest.SendWebRequest();
+
+        // Reset all other players to starting budget
+        string playersJson = "{\"Dollar\": 100, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
+        UnityWebRequest playersRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=neq.Market&Player=neq.Food", "PATCH");
+        byte[] playersBodyRaw = System.Text.Encoding.UTF8.GetBytes(playersJson);
+        playersRequest.uploadHandler = new UploadHandlerRaw(playersBodyRaw);
+        playersRequest.downloadHandler = new DownloadHandlerBuffer();
+        
+        playersRequest.SetRequestHeader("apikey", ANON_KEY);
+        playersRequest.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
+        playersRequest.SetRequestHeader("Content-Type", "application/json");
+        playersRequest.SetRequestHeader("Prefer", "return=minimal");
+
+        yield return playersRequest.SendWebRequest();
+
+        Debug.Log("Game reset completed!");
     }
 }
