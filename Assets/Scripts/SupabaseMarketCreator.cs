@@ -77,10 +77,28 @@ public class SupabaseMarketCreator : MonoBehaviour
         }
     }
 
+    [System.Serializable]
+    private class MarketDataWrapper
+    {
+        public MarketData[] data;
+    }
+
+    [System.Serializable]
+    private class MarketData
+    {
+        public int id;
+        public string Player;
+        public int Blue;
+        public int Purple;
+        public int Yellow;
+        public int Green;
+        public int Dollar;
+    }
+
     IEnumerator CreateMarketPlayer()
     {
-        // Only set the Player name, don't initialize values
-        string json = "{\"Player\": \"Market\"}";
+        // Initialize Market player with zero values
+        string json = "{\"Player\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0, \"Dollar\": 1000000}";
 
         UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
@@ -90,7 +108,7 @@ public class SupabaseMarketCreator : MonoBehaviour
         request.SetRequestHeader("apikey", ANON_KEY);
         request.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
         request.SetRequestHeader("Content-Type", "application/json");
-        request.SetRequestHeader("Prefer", "resolution=merge-duplicates");
+        request.SetRequestHeader("Prefer", "return=representation");
 
         yield return request.SendWebRequest();
 
@@ -98,8 +116,28 @@ public class SupabaseMarketCreator : MonoBehaviour
         {
             Debug.Log("Market player created successfully!");
             string response = request.downloadHandler.text;
-            string idStr = response.Split(new[] { "\"id\":" }, System.StringSplitOptions.None)[1];
-            marketPlayerId = int.Parse(idStr.Split(',')[0]);
+            
+            try
+            {
+                // The response comes as an array, so wrap it in an object
+                string wrappedResponse = "{\"data\":" + response + "}";
+                var wrapper = JsonUtility.FromJson<MarketDataWrapper>(wrappedResponse);
+                
+                if (wrapper.data != null && wrapper.data.Length > 0)
+                {
+                    marketPlayerId = wrapper.data[0].id;
+                    Debug.Log($"Market player created with ID: {marketPlayerId}");
+                }
+                else
+                {
+                    Debug.LogError("No market data in response");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error parsing market player response: {e.Message}");
+                Debug.LogError($"Raw response: {response}");
+            }
         }
         else
         {

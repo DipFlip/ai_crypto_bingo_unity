@@ -346,22 +346,25 @@ public class RoboMove : MonoBehaviour
                 // Log poop location for all current areas
                 if (currentAreas.Count > 0)
                 {
+                    // Create a dictionary just for the areas where we pooped
+                    Dictionary<string, int> poopedAreas = new Dictionary<string, int>();
+                    
                     foreach (string areaName in currentAreas)
                     {
                         if (poopCounts.ContainsKey(areaName))
                         {
                             poopCounts[areaName]++;
-                            Debug.Log($"Robot pooped in {areaName}!");
-                            
-                            // Increase the market value for the pooped area
+                            poopedAreas[areaName] = 1; // Just indicate that we pooped here
                         }
                     }
-                    Market.Instance.UpdateMarketValues(poopCounts);
+                    
+                    // Only send the areas where we just pooped
+                    if (poopedAreas.Count > 0)
+                    {
+                        Market.Instance.UpdateMarketValues(poopedAreas);
+                    }
+                    
                     UpdateStatsDisplay();
-                }
-                else
-                {
-                    Debug.Log("Robot pooped outside of any cube!");
                 }
 
                 // Scale back to normal size with a bounce effect
@@ -409,7 +412,6 @@ public class RoboMove : MonoBehaviour
         if (!currentAreas.Contains(areaName))
         {
             currentAreas.Add(areaName);
-            Debug.Log($"Entered cube: {areaName}");
             
             // Initialize count for this area if we haven't seen it before
             if (!poopCounts.ContainsKey(areaName))
@@ -423,7 +425,6 @@ public class RoboMove : MonoBehaviour
     {
         string areaName = other.gameObject.name;
         currentAreas.Remove(areaName);
-        Debug.Log($"Exited cube: {areaName}");
     }
 
     private void UpdateStatsDisplay()
@@ -486,55 +487,55 @@ public class RoboMove : MonoBehaviour
 
     private IEnumerator ResetGameRoutine()
     {
-        // Reset Market values (poop counts and dollar value)
-        string marketJson = "{\"Player\": \"Market\", \"Dollar\": 1000000, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
-        UnityWebRequest marketRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "PATCH");
-        byte[] marketBodyRaw = System.Text.Encoding.UTF8.GetBytes(marketJson);
-        marketRequest.uploadHandler = new UploadHandlerRaw(marketBodyRaw);
-        marketRequest.downloadHandler = new DownloadHandlerBuffer();
         
-        marketRequest.SetRequestHeader("apikey", ANON_KEY);
-        marketRequest.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
-        marketRequest.SetRequestHeader("Content-Type", "application/json");
-        marketRequest.SetRequestHeader("Prefer", "return=minimal");
-
-        yield return marketRequest.SendWebRequest();
-
-        // Reset Food values
-        string foodJson = "{\"Player\": \"Food\", \"Dollar\": 0, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
-        UnityWebRequest foodRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Food", "PATCH");
-        byte[] foodBodyRaw = System.Text.Encoding.UTF8.GetBytes(foodJson);
-        foodRequest.uploadHandler = new UploadHandlerRaw(foodBodyRaw);
-        foodRequest.downloadHandler = new DownloadHandlerBuffer();
+        // Direct UPDATE query to set all color values to 0
+        UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "PATCH");
+        string json = "{\"Blue\":0,\"Purple\":0,\"Yellow\":0,\"Green\":0}";
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
         
-        foodRequest.SetRequestHeader("apikey", ANON_KEY);
-        foodRequest.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
-        foodRequest.SetRequestHeader("Content-Type", "application/json");
-        foodRequest.SetRequestHeader("Prefer", "return=minimal");
+        request.SetRequestHeader("apikey", ANON_KEY);
+        request.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
+        request.SetRequestHeader("Content-Type", "application/json");
+        request.SetRequestHeader("Prefer", "return=representation");  // This will return the updated row
 
-        yield return foodRequest.SendWebRequest();
-
-        // Reset all other players to starting budget
-        string playersJson = "{\"Dollar\": 100, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
-        UnityWebRequest playersRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=neq.Market&Player=neq.Food", "PATCH");
-        byte[] playersBodyRaw = System.Text.Encoding.UTF8.GetBytes(playersJson);
-        playersRequest.uploadHandler = new UploadHandlerRaw(playersBodyRaw);
-        playersRequest.downloadHandler = new DownloadHandlerBuffer();
+        yield return request.SendWebRequest();
         
-        playersRequest.SetRequestHeader("apikey", ANON_KEY);
-        playersRequest.SetRequestHeader("Authorization", "Bearer " + ANON_KEY);
-        playersRequest.SetRequestHeader("Content-Type", "application/json");
-        playersRequest.SetRequestHeader("Prefer", "return=minimal");
-
-        yield return playersRequest.SendWebRequest();
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log($"Reset successful. Updated values: {request.downloadHandler.text}");
+        }
+        else
+        {
+            Debug.LogError($"Reset failed: {request.error}");
+            Debug.LogError($"Response: {request.downloadHandler.text}");
+            yield break;
+        }
 
         // Reset local poop counts
         foreach (var key in poopCounts.Keys.ToList())
         {
             poopCounts[key] = 0;
         }
-        UpdateStatsDisplay();
 
-        Debug.Log("Game reset completed!");
+        // Wait a frame to ensure Supabase update is complete
+        yield return null;
+
+        // Force Market to refresh with empty counts
+        Dictionary<string, int> emptyMarket = new Dictionary<string, int>
+        {
+            ["Blue"] = 0,
+            ["Purple"] = 0,
+            ["Yellow"] = 0,
+            ["Green"] = 0
+        };
+        Market.Instance.UpdateMarketValues(emptyMarket);
+        
+        // Update the display
+        UpdateStatsDisplay();
+        
+        Debug.Log("Reset completed!");
     }
 }
+
