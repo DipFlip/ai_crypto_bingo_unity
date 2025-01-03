@@ -46,7 +46,7 @@ public class SupabaseMarketCreator : MonoBehaviour
     IEnumerator InitializeMarketPlayer()
     {
         // First try to fetch existing Market player
-        UnityWebRequest getRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "GET");
+        UnityWebRequest getRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopersSystem?Field=eq.Market", "GET");
         getRequest.downloadHandler = new DownloadHandlerBuffer();
         
         getRequest.SetRequestHeader("apikey", ANON_KEY);
@@ -64,16 +64,15 @@ public class SupabaseMarketCreator : MonoBehaviour
             }
             else
             {
-                Debug.Log("Market player already exists");
+                Debug.Log("Market system already exists");
                 // Parse the ID from the response for future updates
-                // Assuming response is in format [{"id": 123, ...}]
                 string idStr = response.Split(new[] { "\"id\":" }, System.StringSplitOptions.None)[1];
                 marketPlayerId = int.Parse(idStr.Split(',')[0]);
             }
         }
         else
         {
-            Debug.LogError("Error checking for Market player: " + getRequest.error);
+            Debug.LogError("Error checking for Market system: " + getRequest.error);
         }
     }
 
@@ -87,7 +86,7 @@ public class SupabaseMarketCreator : MonoBehaviour
     private class MarketData
     {
         public int id;
-        public string Player;
+        public string Field;
         public int Blue;
         public int Purple;
         public int Yellow;
@@ -97,10 +96,10 @@ public class SupabaseMarketCreator : MonoBehaviour
 
     IEnumerator CreateMarketPlayer()
     {
-        // Initialize Market player with zero values
-        string json = "{\"Player\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0, \"Dollar\": 1000000}";
+        // Initialize Market system with zero values
+        string json = "{\"Field\": \"Market\", \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0, \"Dollar\": 1000000}";
 
-        UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers", "POST");
+        UnityWebRequest request = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopersSystem", "POST");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
@@ -114,8 +113,9 @@ public class SupabaseMarketCreator : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("Market player created successfully!");
+            Debug.Log("Market system created successfully!");
             string response = request.downloadHandler.text;
+            Debug.Log($"Create response: {response}");
             
             try
             {
@@ -126,7 +126,7 @@ public class SupabaseMarketCreator : MonoBehaviour
                 if (wrapper.data != null && wrapper.data.Length > 0)
                 {
                     marketPlayerId = wrapper.data[0].id;
-                    Debug.Log($"Market player created with ID: {marketPlayerId}");
+                    Debug.Log($"Market system created with ID: {marketPlayerId}");
                 }
                 else
                 {
@@ -135,7 +135,7 @@ public class SupabaseMarketCreator : MonoBehaviour
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"Error parsing market player response: {e.Message}");
+                Debug.LogError($"Error parsing market system response: {e.Message}");
                 Debug.LogError($"Raw response: {response}");
             }
         }
@@ -160,7 +160,7 @@ public class SupabaseMarketCreator : MonoBehaviour
 
     private IEnumerator UpdateMarket(string json)
     {
-        string url = $"{SUPABASE_URL}/rest/v1/AiPoopers?id=eq.{marketPlayerId}";
+        string url = $"{SUPABASE_URL}/rest/v1/AiPoopersSystem?id=eq.{marketPlayerId}";
         UnityWebRequest request = new UnityWebRequest(url, "PATCH");
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);

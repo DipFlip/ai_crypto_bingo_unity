@@ -115,11 +115,11 @@ public class Market : MonoBehaviour
     {
         if (marketCreator == null || marketCreator.marketPlayerId == -1)
         {
-            Debug.LogError("Market player not initialized!");
+            Debug.LogError("Market system not initialized!");
             yield break;
         }
 
-        UnityWebRequest request = new UnityWebRequest(SupabaseMarketCreator.SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "GET");
+        UnityWebRequest request = new UnityWebRequest(SupabaseMarketCreator.SUPABASE_URL + "/rest/v1/AiPoopersSystem?Field=eq.Market", "GET");
         request.downloadHandler = new DownloadHandlerBuffer();
         
         request.SetRequestHeader("apikey", marketCreator.ANON_KEY);
@@ -127,13 +127,12 @@ public class Market : MonoBehaviour
 
         yield return request.SendWebRequest();
 
-
         if (request.result == UnityWebRequest.Result.Success)
         {
             string response = request.downloadHandler.text;
             if (!string.IsNullOrEmpty(response) && response != "[]")
             {
-                // Remove the square brackets as we expect only one market player
+                // Remove the square brackets as we expect only one market system
                 response = response.Trim('[', ']');
                 var marketData = JsonUtility.FromJson<MarketData>(response);
                 
@@ -157,6 +156,8 @@ public class Market : MonoBehaviour
     [System.Serializable]
     private class MarketData
     {
+        public int id;
+        public string Field;
         public int Blue;
         public int Purple;
         public int Yellow;
@@ -176,9 +177,10 @@ public class Market : MonoBehaviour
 
     private IEnumerator ResetMarketRoutine()
     {
+        Debug.Log("Starting market reset...");
         
         // Direct UPDATE query to set all color values to 0
-        UnityWebRequest request = new UnityWebRequest(SupabaseMarketCreator.SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Market", "PATCH");
+        UnityWebRequest request = new UnityWebRequest(SupabaseMarketCreator.SUPABASE_URL + "/rest/v1/AiPoopersSystem?Field=eq.Market", "PATCH");
         string json = "{\"Blue\":0,\"Purple\":0,\"Yellow\":0,\"Green\":0}";
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -193,7 +195,6 @@ public class Market : MonoBehaviour
         
         if (request.result == UnityWebRequest.Result.Success)
         {
-            
             // Force a refresh of our local values
             Dictionary<string, int> resetCounts = new Dictionary<string, int>
             {

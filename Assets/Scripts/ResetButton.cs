@@ -49,7 +49,7 @@ public class ResetButton : MonoBehaviour
 
         // Reset Food values
         string foodJson = "{\"Dollar\": 0, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
-        UnityWebRequest foodRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=eq.Food", "PATCH");
+        UnityWebRequest foodRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopersSystem?Field=eq.Food", "PATCH");
         byte[] foodBodyRaw = System.Text.Encoding.UTF8.GetBytes(foodJson);
         foodRequest.uploadHandler = new UploadHandlerRaw(foodBodyRaw);
         foodRequest.downloadHandler = new DownloadHandlerBuffer();
@@ -66,7 +66,7 @@ public class ResetButton : MonoBehaviour
             Debug.LogError($"Food reset failed: {foodRequest.error}");
         }
 
-        // Reset all other players to starting budget
+        // Reset all other players to starting budget (these stay in AiPoopers table)
         string playersJson = "{\"Dollar\": 100, \"Blue\": 0, \"Purple\": 0, \"Yellow\": 0, \"Green\": 0}";
         UnityWebRequest playersRequest = new UnityWebRequest(SUPABASE_URL + "/rest/v1/AiPoopers?Player=neq.Market&Player=neq.Food", "PATCH");
         byte[] playersBodyRaw = System.Text.Encoding.UTF8.GetBytes(playersJson);
